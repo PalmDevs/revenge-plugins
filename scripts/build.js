@@ -13,6 +13,8 @@ const plugins = process.argv.slice(2).filter(x => !x.startsWith('-'))
 const dev = process.argv.includes('--dev') || process.argv.includes('-d')
 const watch = process.argv.includes('--watch') || process.argv.includes('-w')
 
+const hasher = Bun.CryptoHasher('sha256')
+
 if (!existsSync('./dist')) await mkdir('./dist')
 
 for (const plugin of plugins.length ? plugins : await readdir('./plugins')) {
@@ -96,7 +98,7 @@ for (const plugin of plugins.length ? plugins : await readdir('./plugins')) {
             ],
         })
 
-        await bundle.write({
+        const code = await bundle.write({
             file: `./dist/${plugin}/index.js`,
             globals(id) {
                 const map = {
@@ -114,10 +116,11 @@ for (const plugin of plugins.length ? plugins : await readdir('./plugins')) {
             format: 'iife',
             compact: true,
             exports: 'named',
-        })
+        }).then(result => result.output[0].code)
         await bundle.close()
 
         manifest.main = 'index.js'
+        manifest.hash = await hasher.update(code).digest('hex')
         await Bun.write(`./dist/${plugin}/manifest.json`, JSON.stringify(manifest))
 
         console.log(`Successfully built: ${manifest.name}`)
