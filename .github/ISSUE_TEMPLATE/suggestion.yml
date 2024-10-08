@@ -1,0 +1,36 @@
+name: Plugin suggestion
+description: Suggest changes for plugins or new plugins
+title: "Plugin name: Short description"
+labels: [feature-request]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Thank you for taking your time to make suggestions. Make sure to fill in the issue title.
+  - type: checkboxes
+    attributes:
+      label: Check all the boxes below
+      options:
+        - label: I have checked that this feature hasn't already been suggested
+          required: true
+  - type: input
+    id: discord
+    attributes:
+      label: Discord username
+      description: Enter your Discord username (@user)
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Explain your suggestion in detail
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why should this feature be added?
+    validations:
+      required: true

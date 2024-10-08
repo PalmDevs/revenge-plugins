@@ -1,0 +1,85 @@
+name: Bug report
+description: Report an issue with a plugin
+title: "Plugin name: Short description"
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Thank you for taking your time to report a bug. Make sure to fill in the issue title.
+  - type: checkboxes
+    attributes:
+      label: Check all the boxes below
+      options:
+        - label: This issue can be reproduced and is not random
+          required: true
+        - label: I have checked that this bug hasn't already been reported
+          required: true
+  - type: input
+    id: discord
+    attributes:
+      label: Discord username
+      description: Enter your Discord username (@user)
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Explain the issue in detail
+    validations:
+      required: false
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Explain how to reproduce the issue
+      placeholder: |
+        1. Install the plugin
+        2. Wait about 10 seconds
+        3. Discord crashes
+    validations:
+      required: true
+  - type: textarea
+    id: crash-stack
+    attributes:
+      label: Stack Trace
+      description: If this bug causes a crash, enter the Stack Trace
+    validations:
+      required: false
+  - type: textarea
+    id: crash-component-stack
+    attributes:
+      label: Component Stack
+      description: If this bug causes a crash, enter the Component stack
+    validations:
+      required: false
+  - type: textarea
+    id: recordings
+    attributes:
+      label: Screenshot / Recordings
+      description: Provide a screenshot or recordings of the issue
+    validations:
+      required: false
+  - type: textarea
+    id: system
+    attributes:
+      label: System
+      description: Enter your system information, go to Settings > Revenge > About and tap each section to copy
+      value: |
+        Device: 
+        Manufacturer: 
+        Brand: 
+
+        OS: 
+        Version: 
+
+        Discord Branch: 
+        Discord Version: 
+        Discord Build: 
+        Revenge Version: 
+
+        React Version: 
+        Hermes Bytecode: 
+    validations:
+      required: true
