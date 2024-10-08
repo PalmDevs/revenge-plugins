@@ -1,0 +1,14 @@
+{
+  "name": "No Suggestions",
+  "description": "Removes annoying channel suggestions that reappear even if you already removed them",
+  "authors": [
+    {
+      "name": "Palm",
+      "id": "629368283354628116"
+    }
+  ],
+  "main": "./src/index.ts",
+  "vendetta": {
+    "icon": "ic_channel_browse"
+  }
+}
