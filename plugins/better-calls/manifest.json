@@ -1,0 +1,14 @@
+{
+  "name": "Better Calls",
+  "description": "Adds more options to calling, such as silent calls, call confirmations, and more",
+  "authors": [
+    {
+      "name": "Palm",
+      "id": "629368283354628116"
+    }
+  ],
+  "main": "./src/index.tsx",
+  "vendetta": {
+    "icon": "icon-call"
+  }
+}
