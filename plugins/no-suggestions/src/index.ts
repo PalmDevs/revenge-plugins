@@ -8,8 +8,8 @@ export default {
     onLoad: () => {
         const { metro, api } = bunny
 
-        const { clearRecentChannels } = metro.findByProps('clearRecentChannels')
-        const datasource = metro.findByProps('SuggestedCategory')
+        const { clearRecentChannels } = metro.findByPropsLazy('clearRecentChannels')
+        const datasource = metro.findByPropsLazy('SuggestedCategory')
 
         unpatch = api.patcher.instead('SuggestedCategory', datasource, ([props], orig) => {
             // If it still gets rendered without any suggestions, we can just render an empty section
