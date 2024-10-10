@@ -69,11 +69,19 @@ export function Text(props: React.PropsWithChildren<TextProps>) {
     )
 }
 
-const IntlLink = findPropLazy('IntlLink')
-
+// TODO: Switch to IntlLink after Discord migration (250.x stable currently does not have it), maybe in 30 versions?
 export function TextLink(props: TextLinkProps) {
-    // biome-ignore lint/correctness/noChildrenProp: Need to coerce array, no thank you
-    return <IntlLink children={[props.children]} target={props.url} />
+    return (
+        <Text
+            variant="text-xs/medium"
+            color="TEXT_LINK"
+            accessible
+            accessibilityRole="link"
+            onPress={() => ReactNative.Linking.openURL(props.url)}
+        >
+            {props.children}
+        </Text>
+    )
 }
 
 export interface TextLinkProps {
