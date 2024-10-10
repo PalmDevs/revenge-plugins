@@ -33,7 +33,11 @@ export const getAudioDeviceDisplayText = (device: Pick<AudioDevice, 'deviceType'
     return getAudioDeviceToDisplayText(device)
 }
 
-export const showAudioOutputDevicesSelectionSheet = (props: { vstorage: PluginStorage; onPress?: () => void, fromVoiceCall?: boolean }) => {
+export const showAudioOutputDevicesSelectionSheet = (props: {
+    vstorage: PluginStorage
+    onPress?: () => void
+    fromVoiceCall?: boolean
+}) => {
     showActionSheet(
         'better-calls:audio-output-devices-select',
         Promise.resolve({
