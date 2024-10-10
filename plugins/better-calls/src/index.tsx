@@ -67,7 +67,7 @@ export default {
                     <Stack style={{ paddingVertical: 24, paddingHorizontal: 12 }} spacing={24}>
                         <Stack spacing={12}>
                             <TableRowGroup title="Silent Call">
-                            <TableSwitchRow
+                                <TableSwitchRow
                                     icon={<TableRow.Icon source={assets.findAssetId('ic_notif_off')} />}
                                     label="Enable Silent Call"
                                     subLabel="Silently call someone without ringing, configurable per user."
@@ -80,10 +80,10 @@ export default {
                                 <TableSwitchRow
                                     icon={<TableRow.Icon source={assets.findAssetId('ic_call_ended')} />}
                                     label="Ring by default"
-                                    subLabel="Ring people by default unless you set otherwise. This will affect existing unset preferences."
+                                    subLabel="Ring people by default unless you set otherwise. This will affect unset preferences."
                                     value={!vstorage.silentCall.default}
                                     onValueChange={(v: boolean) => {
-                                        vstorage.silentCall.default = v
+                                        vstorage.silentCall.default = !v
                                         onUpdate()
                                     }}
                                 />

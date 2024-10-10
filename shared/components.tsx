@@ -110,6 +110,7 @@ type ButtonVariant =
 interface ButtonProps {
     disabled?: boolean
     onPress: () => void
+    onLongPress?: () => void
     loading?: boolean
     variant?: LiteralUnion<ButtonVariant, string>
     text?: string
@@ -178,6 +179,7 @@ export type Text = React.FC<TextProps>
 interface IconButtonProps {
     icon: ImageSourcePropType | ReactNode
     onPress: () => void
+    onLongPress?: () => void
     disabled?: boolean
     size?: InteractiveSize
     variant?: ButtonVariant

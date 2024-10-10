@@ -1,5 +1,5 @@
 import { IconButton } from 'shared:components'
-import type { PluginStorage } from '..'
+import { type PluginStorage, vstorage } from '..'
 
 type CallModule = {
     //? The values were "channelId", false, true, null, null in my testing
@@ -15,8 +15,38 @@ type CallModule = {
     stopRinging(channelId: string, recipients: string[] | null): void
 }
 
+const NextPrefMap = {
+    undefined: cid => {
+        vstorage.silentCall.users[cid] = true
+        return true
+    },
+    true: cid => {
+        vstorage.silentCall.users[cid] = false
+        return false
+    },
+    false: cid => {
+        delete vstorage.silentCall.users[cid]
+        return undefined
+    },
+}
+
+const NewPrefToastMap = {
+    undefined: {
+        content: 'Following the global setting for this user',
+        icon: 'ic_call_ended',
+    },
+    true: {
+        content: 'Calling will now silently call this user',
+        icon: 'ic_notif_off',
+    },
+    false: {
+        content: 'Calling will now ring this user',
+        icon: 'ic_notif',
+    },
+}
+
 export const patch = (vstorage: PluginStorage, unpatches: UnpatchFunction[]) => {
-    const { api, metro } = bunny
+    const { api, metro, ui } = bunny
 
     const callModule: CallModule | undefined = metro.findByPropsLazy('call', 'ring', 'stopRinging')
     const PrivateChannelButtons = metro.findByTypeNameLazy('PrivateChannelButtons')
@@ -34,7 +64,7 @@ export const patch = (vstorage: PluginStorage, unpatches: UnpatchFunction[]) => 
         */
     unpatches.push(
         api.patcher.after('type', PrivateChannelButtons, ([{ channelId }], rt) => {
-            const [silenced, setSilenced] = React.useState(vstorage.silentCall[channelId] ?? false)
+            const [silenced, setSilenced] = React.useState<boolean | undefined>(vstorage.silentCall.users[channelId])
             const fragmentProps = rt.props.children[0].props
 
             // This can occasionally be undefined because when you call someone, the call buttons are removed and replaced with the hang up button
@@ -42,12 +72,17 @@ export const patch = (vstorage: PluginStorage, unpatches: UnpatchFunction[]) => 
                 fragmentProps.children = [
                     <IconButton
                         key="better-calls:silent-call-toggle"
-                        icon={api.assets.findAssetId(silenced ? 'ic_notif_off' : 'ic_notif')}
+                        icon={api.assets.findAssetId(
+                            silenced === undefined ? 'ic_call_ended' : silenced ? 'ic_notif_off' : 'ic_notif',
+                        )}
                         onPress={() => {
-                            vstorage[channelId] = !silenced
-                            setSilenced(!silenced)
+                            const newPref = NextPrefMap[String(silenced)](channelId)
+                            setSilenced(newPref)
+
+                            const toastData = NewPrefToastMap[String(newPref)]
+                            ui.toasts.showToast(toastData.content, api.assets.findAssetId(toastData.icon))
                         }}
-                        variant={silenced ? 'primary' : 'tertiary'}
+                        variant={silenced === undefined ? 'tertiary' : silenced ? 'primary' : 'secondary'}
                         size="sm"
                     />,
                     ...fragmentProps.children,
