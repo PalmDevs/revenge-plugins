@@ -11,27 +11,23 @@ import {
     showAudioOutputDevicesSelectionSheet,
 } from './utils'
 
-export type PluginStorage = {
-    silentCall: {
-        enabled: boolean
-        users: Record<string, boolean>
-    }
-    rememberOutputDevice: {
-        enabled: boolean
-        device?: AudioDevice
+export type PluginStorageVersions = {
+    2: {
+        v: 2
+        silentCall: {
+            enabled: boolean
+            users: Record<string, boolean>
+        }
+        rememberOutputDevice: {
+            enabled: boolean
+            device?: AudioDevice
+        }
     }
 }
 
-export const vstorage = storage as {
-    silentCall: {
-        enabled: boolean
-        users: Record<string, boolean>
-    }
-    rememberOutputDevice: {
-        enabled: boolean
-        device?: AudioDevice
-    }
-}
+export type PluginStorage = PluginStorageVersions[2]
+
+export const vstorage = storage as PluginStorage
 
 export const unpatches: {
     silentCall: UnpatchFunction[]
@@ -165,6 +161,8 @@ export default {
 
 // TODO: Maybe force rerender of PrivateChannelButtons
 function onModuleStatusUpdate(_firstRun?: boolean) {
+    vstorage.v ??= 2
+
     vstorage.silentCall ??= {
         enabled: true,
         users: {},
