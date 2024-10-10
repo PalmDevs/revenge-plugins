@@ -11,9 +11,14 @@ import tsConfigPaths from 'rollup-plugin-tsconfig-paths'
 const extensions = ['.js', '.jsx', '.mjs', '.ts', '.tsx', '.cts', '.mts']
 const plugins = process.argv.slice(2).filter(x => !x.startsWith('-'))
 const dev = process.argv.includes('--dev') || process.argv.includes('-d')
-const watch = process.argv.includes('--watch') || process.argv.includes('-w')
 
-const hasher = Bun.CryptoHasher('sha256')
+const hasher = new Bun.CryptoHasher('sha256')
+
+const importMap = {
+    react: 'React',
+    'react-native': 'ReactNative',
+    '@revenge-mod/revenge': 'bunny',
+}
 
 if (!existsSync('./dist')) await mkdir('./dist')
 
@@ -23,8 +28,14 @@ for (const plugin of plugins.length ? plugins : await readdir('./plugins')) {
     try {
         const bundle = await rollup({
             input: `./plugins/${plugin}/${manifest.main}`,
-            onwarn: () => {},
-            watch,
+            watch: {
+                include: `./plugins/${plugin}/**`,
+            },
+            onwarn(warning) {
+                if (warning.code === 'MISSING_NAME_OPTION_FOR_IIFE_EXPORT') return
+                return console.warn(warning.message)
+            },
+            external: id => Boolean(id.match(/^@(revenge-mod|vendetta)/)) || importMap[id],
             plugins: [
                 tsConfigPaths(),
                 nodeResolve(),
@@ -50,11 +61,22 @@ for (const plugin of plugins.length ? plugins : await readdir('./plugins')) {
                                 },
                             },
                             env: {
-                                targets: 'defaults',
+                                targets: 'fully supports es6',
                                 include: [
+                                    'transform-block-scoping',
                                     'transform-classes',
-                                    'transform-arrow-functions',
-                                    'transform-class-properties',
+                                    'transform-async-to-generator',
+                                    'transform-async-generator-functions',
+                                ],
+                                exclude: [
+                                    'transform-parameters',
+                                    'transform-template-literals',
+                                    'transform-exponentiation-operator',
+                                    'transform-named-capturing-groups-regex',
+                                    'transform-nullish-coalescing-operator',
+                                    'transform-object-rest-spread',
+                                    'transform-optional-chaining',
+                                    'transform-logical-assignment-operators',
                                 ],
                             },
                         })
@@ -77,12 +99,12 @@ for (const plugin of plugins.length ? plugins : await readdir('./plugins')) {
                         const mode = Object.entries(parsers).find(([_, v]) => v.includes(ext))?.[0]
                         if (!mode) return null
 
-                        let thing
+                        let thing: string
                         if (mode === 'text') thing = JSON.stringify(code)
                         else if (mode === 'raw') thing = code
                         else if (mode === 'uri')
                             thing = JSON.stringify(
-                                `data:${extToMime[ext] ?? ''};base64,${(await readFile(id)).toString('base64')}`,
+                                `data:${extToMime[ext] ?? ''};base64,${Buffer.from(await Bun.file(id).arrayBuffer()).toString('base64')}`,
                             )
 
                         if (thing) return { code: `export default ${thing}` }
@@ -98,25 +120,22 @@ for (const plugin of plugins.length ? plugins : await readdir('./plugins')) {
             ],
         })
 
-        const code = await bundle.write({
-            file: `./dist/${plugin}/index.js`,
-            globals(id) {
-                const map = {
-                    react: 'React',
-                    'react-native': 'ReactNative',
-                    '@revenge-mod/revenge': 'bunny',
-                }
+        const code = await bundle
+            .write({
+                file: `./dist/${plugin}/index.js`,
+                globals(id) {
+                    if (importMap[id]) return importMap[id]
 
-                if (map[id]) return map[id]
+                    if (id.startsWith('@vendetta')) return id.substring(1).replace(/\//g, '.')
 
-                if (id.startsWith('@vendetta')) return id.substring(1).replace(/\//g, '.')
+                    return null
+                },
+                format: 'iife',
+                compact: true,
+                exports: 'named',
+            })
+            .then(result => result.output[0].code)
 
-                return null
-            },
-            format: 'iife',
-            compact: true,
-            exports: 'named',
-        }).then(result => result.output[0].code)
         await bundle.close()
 
         manifest.main = 'index.js'

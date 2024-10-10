@@ -10,9 +10,15 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "paths": {
-      "$/*": ["./stuff/*"]
+      "shared:*": ["./shared/*"]
     }
   },
-  "include": ["plugins", "node_modules/vendetta-types", "global.d.ts"],
+  "include": [
+    "plugins",
+    "node_modules/vendetta-types",
+    "global.d.ts",
+    "shared",
+    "scripts"
+  ],
   "exclude": ["dist"]
 }
