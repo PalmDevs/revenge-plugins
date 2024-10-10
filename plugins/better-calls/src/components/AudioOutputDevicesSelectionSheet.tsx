@@ -48,18 +48,19 @@ export default function AudioOutputDevicesSelectionSheet({
                             ))}
                         </TableRadioGroup>
                     </Stack>
-                    <Stack spacing={0}>
-                        <Text variant="text-xs/normal" color="TEXT_MUTED">
-                            Missing a few devices from the stock panel? Make a{' '}
-                            <TextLink url={Constants.Repository.FeatureRequestURL}>feature request</TextLink> for them!
-                        </Text>
-                        {fromVoiceCall && (
+                    {fromVoiceCall && (
+                        <Stack spacing={0}>
+                            <Text variant="text-xs/normal" color="TEXT_MUTED">
+                                Missing a few devices from the stock panel? Make a{' '}
+                                <TextLink url={Constants.Repository.FeatureRequestURL}>feature request</TextLink> for
+                                them!
+                            </Text>
                             <Text variant="text-xs/normal" color="TEXT_MUTED">
                                 Alternatively, you can swipe up the dock and access the{' '}
                                 <Text variant="text-xs/bold">Change Audio Output</Text> option.
                             </Text>
-                        )}
-                    </Stack>
+                        </Stack>
+                    )}
                 </Stack>
             </ReactNative.View>
         </ActionSheet>
