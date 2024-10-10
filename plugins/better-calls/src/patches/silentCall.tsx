@@ -57,7 +57,8 @@ export const patch = (vstorage: PluginStorage, unpatches: UnpatchFunction[]) => 
 
     unpatches.push(
         api.patcher.instead('ring', callModule, (args: Parameters<CallModule['ring']>, ring) => {
-            if (!vstorage[args[0]]) return ring.apply(callModule, args)
+            const silentCall = vstorage.silentCall.users[args[0]] ?? vstorage.silentCall.default
+            if (!silentCall) return ring.apply(callModule, args)
         }),
     )
 

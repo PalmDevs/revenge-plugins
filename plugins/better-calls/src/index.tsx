@@ -17,6 +17,7 @@ export type PluginStorageVersions = {
         silentCall: {
             enabled: boolean
             users: Record<string, boolean>
+            default: boolean
         }
         rememberOutputDevice: {
             enabled: boolean
@@ -66,13 +67,23 @@ export default {
                     <Stack style={{ paddingVertical: 24, paddingHorizontal: 12 }} spacing={24}>
                         <Stack spacing={12}>
                             <TableRowGroup title="Silent Call">
-                                <TableSwitchRow
+                            <TableSwitchRow
                                     icon={<TableRow.Icon source={assets.findAssetId('ic_notif_off')} />}
                                     label="Enable Silent Call"
                                     subLabel="Silently call someone without ringing, configurable per user."
                                     value={vstorage.silentCall.enabled}
                                     onValueChange={(v: boolean) => {
                                         vstorage.silentCall.enabled = v
+                                        onUpdate()
+                                    }}
+                                />
+                                <TableSwitchRow
+                                    icon={<TableRow.Icon source={assets.findAssetId('ic_call_ended')} />}
+                                    label="Ring by default"
+                                    subLabel="Ring people by default unless you set otherwise. This will affect existing unset preferences."
+                                    value={!vstorage.silentCall.default}
+                                    onValueChange={(v: boolean) => {
+                                        vstorage.silentCall.default = v
                                         onUpdate()
                                     }}
                                 />
@@ -166,6 +177,7 @@ function onModuleStatusUpdate(_firstRun?: boolean) {
     vstorage.silentCall ??= {
         enabled: true,
         users: {},
+        default: false,
     }
 
     const devices = getAudioDevices()
