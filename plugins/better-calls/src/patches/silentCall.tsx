@@ -30,18 +30,21 @@ const NextPrefMap = {
     },
 }
 
-const NewPrefToastMap = {
+const PrefStyleMap = {
     undefined: {
         content: 'Following the global setting for this user',
-        icon: 'ic_call_ended',
+        icon: 'ic_notif',
+        variant: 'secondary',
     },
     true: {
         content: 'Calling will now silently call this user',
         icon: 'ic_notif_off',
+        variant: 'primary',
     },
     false: {
         content: 'Calling will now ring this user',
-        icon: 'ic_notif',
+        icon: 'ic_notification_settings_24px',
+        variant: 'secondary',
     },
 }
 
@@ -73,16 +76,16 @@ export const patch = (vstorage: PluginStorage, unpatches: UnpatchFunction[]) => 
                     <IconButton
                         key="better-calls:silent-call-toggle"
                         icon={api.assets.findAssetId(
-                            silenced === undefined ? 'ic_call_ended' : silenced ? 'ic_notif_off' : 'ic_notif',
+                            PrefStyleMap[String(silenced)].icon
                         )}
                         onPress={() => {
                             const newPref = NextPrefMap[String(silenced)](channelId)
                             setSilenced(newPref)
 
-                            const toastData = NewPrefToastMap[String(newPref)]
+                            const toastData = PrefStyleMap[String(newPref)]
                             ui.toasts.showToast(toastData.content, api.assets.findAssetId(toastData.icon))
                         }}
-                        variant={silenced === undefined ? 'tertiary' : silenced ? 'primary' : 'secondary'}
+                        variant={PrefStyleMap[String(silenced)].variant}
                         size="sm"
                     />,
                     ...fragmentProps.children,
