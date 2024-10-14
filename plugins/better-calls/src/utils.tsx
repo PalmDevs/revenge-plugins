@@ -1,8 +1,12 @@
 import { showActionSheet } from 'shared:sheets'
+import { findByPropsLazy } from '@revenge-mod/metro'
+import { components } from '@revenge-mod/ui'
 import type { PluginStorage } from '.'
 import AudioOutputDevicesSelectionSheet from './components/AudioOutputDevicesSelectionSheet'
 
-const { metro } = bunny
+const { getAudioDevices: _get } = findByPropsLazy('getAudioDevices')
+const { setAudioOutputDevice: setOutputDevice } = findByPropsLazy('setAudioOutputDevice')
+const { audioDeviceToIconMap, getAudioDeviceToDisplayText } = findByPropsLazy('audioDeviceToIconMap')
 
 export type SimpleAudioDeviceType = 'EARPIECE' | 'BLUETOOTH_HEADSET' | 'WIRED_HEADSET' | 'SPEAKERPHONE' | 'INVALID'
 export type AudioDevice = {
@@ -12,29 +16,14 @@ export type AudioDevice = {
     deviceType: number
 }
 
-export const getAudioDevices = () => {
-    const { getAudioDevices: _get } = metro.findByPropsLazy('getAudioDevices')
-
-    return _get() as AudioDevice[]
-}
-
-export const setAudioOutputDevice = (device: AudioDevice) => {
-    const { setAudioOutputDevice } = metro.findByPropsLazy('setAudioOutputDevice')
-    setAudioOutputDevice(device)
-}
-
-export const getAudioDeviceIcon = (simpleDeviceType: SimpleAudioDeviceType) => {
-    const { audioDeviceToIconMap } = metro.findByPropsLazy('audioDeviceToIconMap')
-    return audioDeviceToIconMap[simpleDeviceType]
-}
-
-export const getAudioDeviceDisplayText = (device: Pick<AudioDevice, 'deviceType'>) => {
-    const { getAudioDeviceToDisplayText } = metro.findByPropsLazy('getAudioDeviceToDisplayText')
-    return getAudioDeviceToDisplayText(device)
-}
+export const getAudioDevices = () => _get() as AudioDevice[]
+export const setAudioOutputDevice = (device: AudioDevice) => setOutputDevice(device)
+export const getAudioDeviceIcon = (simpleDeviceType: SimpleAudioDeviceType) => audioDeviceToIconMap[simpleDeviceType]
+export const getAudioDeviceDisplayText = (device: Pick<AudioDevice, 'deviceType'>) =>
+    getAudioDeviceToDisplayText(device)
 
 export const showAudioOutputDevicesSelectionSheet = (props: {
-    vstorage: PluginStorage
+    storage: PluginStorage
     onPress?: () => void
     fromVoiceCall?: boolean
 }) => {
@@ -42,9 +31,9 @@ export const showAudioOutputDevicesSelectionSheet = (props: {
         'better-calls:audio-output-devices-select',
         Promise.resolve({
             default: () => (
-                <bunny.ui.components.ErrorBoundary>
+                <components.ErrorBoundary>
                     <AudioOutputDevicesSelectionSheet {...props} />
-                </bunny.ui.components.ErrorBoundary>
+                </components.ErrorBoundary>
             ),
         }),
     )

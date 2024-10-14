@@ -17,7 +17,6 @@ const hasher = new Bun.CryptoHasher('sha256')
 const importMap = {
     react: 'React',
     'react-native': 'ReactNative',
-    '@revenge-mod/revenge': 'bunny',
 }
 
 if (!existsSync('./dist')) await mkdir('./dist')
@@ -126,7 +125,17 @@ for (const plugin of plugins.length ? plugins : await readdir('./plugins')) {
                 globals(id) {
                     if (importMap[id]) return importMap[id]
 
-                    if (id.startsWith('@vendetta')) return id.substring(1).replace(/\//g, '.')
+                    const replaceSlashWithDot = (s: string) => s.replaceAll('/', '.')
+
+                    if (id.startsWith('@vendetta')) return replaceSlashWithDot(id.substring(1))
+                    if (id.startsWith('@revenge-mod')) return `bunny${replaceSlashWithDot(id.substring(12))}`
+                    if (id.startsWith('@revenge-mod/revenge/src')) {
+                        console.warn('Importing from `node_modules`, please change.')
+                        const path = id.substring(25)
+                        if (path.startsWith('metro')) return `bunny.${replaceSlashWithDot(path)}`
+                        if (path.startsWith('lib')) return `bunny.${replaceSlashWithDot(path.substring(3))}`
+                        console.warn(`Unable to resolve import path for "${path}"!`)
+                    }
 
                     return null
                 },

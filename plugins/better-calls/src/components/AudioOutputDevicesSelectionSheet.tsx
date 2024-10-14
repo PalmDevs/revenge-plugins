@@ -1,7 +1,6 @@
 import {
     ActionSheet,
     BottomSheetTitleHeader,
-    Button,
     Stack,
     TableRadioGroup,
     TableRadioRow,
@@ -10,14 +9,15 @@ import {
     TextLink,
 } from 'shared:components'
 import Constants from 'shared:constants'
+import { ReactNative } from '@revenge-mod/metro/common'
 import type { PluginStorage } from '..'
 import { getAudioDeviceDisplayText, getAudioDeviceIcon, getAudioDevices, setAudioOutputDevice } from '../utils'
 
 export default function AudioOutputDevicesSelectionSheet({
     onPress,
-    vstorage,
+    storage,
     fromVoiceCall,
-}: { onPress?: () => void; vstorage: PluginStorage; fromVoiceCall?: boolean }) {
+}: { onPress?: () => void; storage: PluginStorage; fromVoiceCall?: boolean }) {
     const devices = getAudioDevices()
 
     return (
@@ -29,10 +29,10 @@ export default function AudioOutputDevicesSelectionSheet({
                         <TableRadioGroup
                             title="Audio Devices"
                             hasIcons
-                            value={vstorage.rememberOutputDevice.device.deviceId}
-                            onChange={dvid => {
-                                const device = devices.find(dv => dv.deviceId === dvid)
-                                vstorage.rememberOutputDevice.device = device
+                            value={storage.get('rememberOutputDevice.device.deviceId')}
+                            onChange={deviceId => {
+                                const device = devices.find(dv => dv.deviceId === deviceId)
+                                storage.set('rememberOutputDevice.device', device)
                                 setAudioOutputDevice(device)
                                 if (onPress) onPress()
                             }}

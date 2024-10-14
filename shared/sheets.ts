@@ -1,8 +1,5 @@
 import { findPropLazy } from 'shared:utils'
-
-const {
-    metro: { findByPropsLazy },
-} = bunny
+import { findByPropsLazy } from '@revenge-mod/metro'
 
 const actionSheet = findByPropsLazy('openLazy', 'hideActionSheet')
 const showSimpleActionSheet = findPropLazy('showSimpleActionSheet') as {

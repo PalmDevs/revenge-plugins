@@ -1,17 +1,14 @@
-import { storage } from '@vendetta/plugin'
-
-export const vstorage = storage as Record<string, boolean>
+import { patcher } from '@revenge-mod/api'
+import { findByPropsLazy } from '@revenge-mod/metro'
 
 let unpatch: UnpatchFunction | undefined
 
 export default {
     onLoad: () => {
-        const { metro, api } = bunny
+        const { clearRecentChannels } = findByPropsLazy('clearRecentChannels')
+        const datasource = findByPropsLazy('SuggestedCategory')
 
-        const { clearRecentChannels } = metro.findByPropsLazy('clearRecentChannels')
-        const datasource = metro.findByPropsLazy('SuggestedCategory')
-
-        unpatch = api.patcher.instead('SuggestedCategory', datasource, ([props], orig) => {
+        unpatch = patcher.instead('SuggestedCategory', datasource, ([props], orig) => {
             // If it still gets rendered without any suggestions, we can just render an empty section
             // Don't need to send an unnecessary request to clear the recent channels
             if (!props.channelIds.length) return null

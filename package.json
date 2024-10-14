@@ -13,7 +13,7 @@
     "lint:types": "tsc --noEmit"
   },
   "dependencies": {
-    "@revenge-mod/revenge": "https://github.com/revenge-mod/revenge",
+    "@revenge-mod/revenge": "github:revenge-mod/revenge",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@swc/core": "^1.5.3",

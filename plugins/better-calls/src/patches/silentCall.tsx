@@ -1,5 +1,8 @@
 import { IconButton } from 'shared:components'
-import { type PluginStorage, vstorage } from '..'
+import { assets, patcher } from '@revenge-mod/api'
+import { findByPropsLazy, findByTypeNameLazy } from '@revenge-mod/metro'
+import { toasts } from '@revenge-mod/ui'
+import { type PluginStorage, storage } from '..'
 
 type CallModule = {
     //? The values were "channelId", false, true, null, null in my testing
@@ -15,22 +18,13 @@ type CallModule = {
     stopRinging(channelId: string, recipients: string[] | null): void
 }
 
-const NextPrefMap = {
-    undefined: cid => {
-        vstorage.silentCall.users[cid] = true
-        return true
-    },
-    true: cid => {
-        vstorage.silentCall.users[cid] = false
-        return false
-    },
-    false: cid => {
-        delete vstorage.silentCall.users[cid]
-        return undefined
-    },
+const NextPreferenceActionMap = {
+    undefined: cid => storage.set(`silentCall.users.${cid}`, true),
+    true: cid => storage.set(`silentCall.users.${cid}`, false),
+    false: cid => storage.unset(`silentCall.users.${cid}`),
 }
 
-const PrefStyleMap = {
+const PreferenceStyleMap = {
     undefined: {
         content: 'Following the global setting for this user',
         icon: 'ic_notif',
@@ -48,11 +42,9 @@ const PrefStyleMap = {
     },
 }
 
-export const patch = (vstorage: PluginStorage, unpatches: UnpatchFunction[]) => {
-    const { api, metro, ui } = bunny
-
-    const callModule: CallModule | undefined = metro.findByPropsLazy('call', 'ring', 'stopRinging')
-    const PrivateChannelButtons = metro.findByTypeNameLazy('PrivateChannelButtons')
+export const patch = (storage: PluginStorage, unpatches: UnpatchFunction[]) => {
+    const callModule: CallModule | undefined = findByPropsLazy('call', 'ring', 'stopRinging')
+    const PrivateChannelButtons = findByTypeNameLazy('PrivateChannelButtons')
 
     // Silently fail if we can't find the modules
     if (!callModule || !PrivateChannelButtons) return
@@ -66,8 +58,10 @@ export const patch = (vstorage: PluginStorage, unpatches: UnpatchFunction[]) => 
                     ...
         */
     unpatches.push(
-        api.patcher.after('type', PrivateChannelButtons, ([{ channelId }], rt) => {
-            const [silenced, setSilenced] = React.useState<boolean | undefined>(vstorage.silentCall.users[channelId])
+        patcher.after('type', PrivateChannelButtons, ([{ channelId }], rt) => {
+            const [silenced, setSilenced] = React.useState<boolean | undefined>(
+                storage.get(`silentCall.users.${channelId}`),
+            )
             const fragmentProps = rt.props.children[0].props
 
             // This can occasionally be undefined because when you call someone, the call buttons are removed and replaced with the hang up button
@@ -75,17 +69,15 @@ export const patch = (vstorage: PluginStorage, unpatches: UnpatchFunction[]) => 
                 fragmentProps.children = [
                     <IconButton
                         key="better-calls:silent-call-toggle"
-                        icon={api.assets.findAssetId(
-                            PrefStyleMap[String(silenced)].icon
-                        )}
+                        icon={assets.findAssetId(PreferenceStyleMap[String(silenced)].icon)}
                         onPress={() => {
-                            const newPref = NextPrefMap[String(silenced)](channelId)
+                            const newPref = NextPreferenceActionMap[String(silenced)](channelId)
                             setSilenced(newPref)
 
-                            const toastData = PrefStyleMap[String(newPref)]
-                            ui.toasts.showToast(toastData.content, api.assets.findAssetId(toastData.icon))
+                            const toastData = PreferenceStyleMap[String(newPref)]
+                            toasts.showToast(toastData.content, assets.findAssetId(toastData.icon))
                         }}
-                        variant={PrefStyleMap[String(silenced)].variant}
+                        variant={PreferenceStyleMap[String(silenced)].variant}
                         size="sm"
                     />,
                     ...fragmentProps.children,
@@ -94,8 +86,8 @@ export const patch = (vstorage: PluginStorage, unpatches: UnpatchFunction[]) => 
     )
 
     unpatches.push(
-        api.patcher.instead('ring', callModule, (args: Parameters<CallModule['ring']>, ring) => {
-            const silentCall = vstorage.silentCall.users[args[0]] ?? vstorage.silentCall.default
+        patcher.instead('ring', callModule, (args: Parameters<CallModule['ring']>, ring) => {
+            const silentCall = storage.getFirstDefined(`silentCall.users.${args[0]}`, 'silentCall.default')
             if (!silentCall) return ring.apply(callModule, args)
         }),
     )

@@ -1,7 +1,10 @@
-// From Bunny's codebase
+import { findByProps, findByPropsLazy } from '@revenge-mod/metro'
+import { ReactNative } from '@revenge-mod/metro/common'
+import { lazyDestructure, proxyLazy } from '@revenge-mod/utils/lazy'
 
 import { TextStyleSheet, resolveSemanticColor, semanticColors } from 'shared:themes'
 import { findPropLazy } from 'shared:utils'
+
 import type { DiscordTextStyles } from '@revenge-mod/revenge/src/lib/ui/types'
 import type { Nullish } from '@revenge-mod/revenge/src/lib/utils/types'
 import type { ReactNode } from 'react'
@@ -9,17 +12,8 @@ import type * as RN from 'react-native'
 import type { ImageSourcePropType, PressableProps } from 'react-native'
 import type { LiteralUnion } from 'type-fest'
 
-const {
-    metro: { findByProps, findByPropsLazy },
-    utils: {
-        lazy: { proxyLazy, lazyDestructure },
-    },
-} = bunny
-
-// React Native's included SafeAreaView only adds padding on iOS.
 export const SafeAreaView = proxyLazy(() => findByPropsLazy('useSafeAreaInsets').SafeAreaView)
 
-// Buttons & Tables & Inputs
 export const {
     Button,
     IconButton,
@@ -39,8 +33,6 @@ export const {
     TableRow: React.FC<any> & { Icon: React.FC<any> }
 } & { [K in string]: React.FC<any> }
 
-// Sheets
-
 export const { ActionSheet } = findByProps('ActionSheet') as { ActionSheet: ActionSheet }
 export const ActionSheetRow = findByProps('ActionSheetRow')
 export const BottomSheetTitleHeader = findPropLazy('BottomSheetTitleHeader')
@@ -48,8 +40,6 @@ export const BottomSheetTitleHeader = findPropLazy('BottomSheetTitleHeader')
 export const { FormSwitch, FormRadio, FormCheckbox } = lazyDestructure(() =>
     findByPropsLazy('FormSwitch', 'FormRadio', 'FormCheckbox'),
 )
-
-// Misc.
 
 export function Text(props: React.PropsWithChildren<TextProps>) {
     const { children, variant, color, style, lineClamp = 0 } = props

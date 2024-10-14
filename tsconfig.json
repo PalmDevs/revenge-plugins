@@ -9,16 +9,18 @@
     "allowJs": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
+    "strict": true,
     "paths": {
       "shared:*": ["./shared/*"]
     }
   },
   "include": [
     "plugins",
-    "node_modules/vendetta-types",
     "global.d.ts",
+    "modules.d.ts",
     "shared",
-    "scripts"
+    "scripts",
+    "node_modules/vendetta-types"
   ],
   "exclude": ["dist"]
 }

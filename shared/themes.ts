@@ -1,13 +1,11 @@
 import { findPropLazy } from 'shared:utils'
+import { findByStoreNameLazy } from '@revenge-mod/metro'
+import { color } from '@revenge-mod/ui'
 
-const {
-    metro: { findByStoreNameLazy },
-} = bunny
+import type { ReactNative } from '@revenge-mod/metro/common'
 
-export const { resolveSemanticColor, semanticColors } = bunny.ui.color
-
+export const { resolveSemanticColor, semanticColors } = color
 export const ThemeStore = findByStoreNameLazy('ThemeStore')
-
 export const TextStyleSheet = findPropLazy('TextStyleSheet') as TextStyleSheet
 
 export type TextStyleSheetWeight = 'normal' | 'medium' | 'semibold' | 'bold'
