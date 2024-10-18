@@ -10,7 +10,7 @@ export const patch = (storage: PluginStorage, unpatches: UnpatchFunction[]) => {
     unpatches.push(
         patcher.after('type', VoicePanelHeaderSpeaker, args => {
             if (args[0].isConnectedToVoiceChannel) {
-                setAudioOutputDevice(storage.get('rememberOutputDevice.device'))
+                setAudioOutputDevice(storage.get('rememberOutputDevice.device')!)
                 return (
                     <IconButton
                         key="better-calls:silent-call-toggle"

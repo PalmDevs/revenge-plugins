@@ -19,7 +19,7 @@ type PluginStorageStruct = Storage<
     {
         silentCall: {
             enabled: boolean
-            users: Record<string, boolean>
+            users: Record<string, boolean | undefined>
             default: boolean
         }
         rememberOutputDevice: {
@@ -164,7 +164,7 @@ export default {
                                     label="Current device"
                                     subLabel={
                                         storage.get('rememberOutputDevice.device')
-                                            ? `${storage.get('rememberOutputDevice.device.deviceName')} - ${getAudioDeviceDisplayText(storage.get('rememberOutputDevice.device'))}`
+                                            ? `${storage.get('rememberOutputDevice.device.deviceName')} - ${getAudioDeviceDisplayText(storage.get('rememberOutputDevice.device')!)}`
                                             : 'No device'
                                     }
                                     arrow

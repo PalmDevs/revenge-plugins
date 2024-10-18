@@ -18,29 +18,32 @@ type CallModule = {
     stopRinging(channelId: string, recipients: string[] | null): void
 }
 
-const NextPreferenceActionMap = {
-    undefined: cid => storage.set(`silentCall.users.${cid}`, true),
-    true: cid => storage.set(`silentCall.users.${cid}`, false),
-    false: cid => storage.unset(`silentCall.users.${cid}`),
+const NextPreference = {
+    undefined: true,
+    true: false,
+    false: undefined,
 }
 
-const PreferenceStyleMap = {
+const Preferences = {
     undefined: {
-        content: 'Following the global setting for this user',
-        icon: 'ic_notif',
-        variant: 'secondary',
+        icon: 'BellIcon',
+        description: 'Following the global setting for this user',
+        buttonVariant: 'tertiary',
+        action: (cid: string) => storage.set(`silentCall.users.${cid}`, true),
     },
     true: {
-        content: 'Calling will now silently call this user',
-        icon: 'ic_notif_off',
-        variant: 'primary',
+        icon: 'BellZIcon',
+        description: 'Calling will now silently call this user',
+        buttonVariant: 'primary',
+        action: (cid: string) => storage.set(`silentCall.users.${cid}`, false),
     },
     false: {
-        content: 'Calling will now ring this user',
         icon: 'ic_notification_settings_24px',
-        variant: 'secondary',
+        description: 'Calling will now ring this user',
+        buttonVariant: 'secondary',
+        action: (cid: string) => storage.unset(`silentCall.users.${cid}`),
     },
-}
+} as const
 
 export const patch = (storage: PluginStorage, unpatches: UnpatchFunction[]) => {
     const callModule: CallModule | undefined = findByPropsLazy('call', 'ring', 'stopRinging')
@@ -62,22 +65,24 @@ export const patch = (storage: PluginStorage, unpatches: UnpatchFunction[]) => {
             const [silenced, setSilenced] = React.useState<boolean | undefined>(
                 storage.get(`silentCall.users.${channelId}`),
             )
-            const fragmentProps = rt.props.children[0].props
+
+            const key = String(silenced) as keyof typeof Preferences
+            const preference = () => Preferences[key]
+            const fragmentProps = rt?.props?.children?.[0]?.props
 
             // This can occasionally be undefined because when you call someone, the call buttons are removed and replaced with the hang up button
-            if (fragmentProps.children)
+            if (fragmentProps?.children)
                 fragmentProps.children = [
                     <IconButton
                         key="better-calls:silent-call-toggle"
-                        icon={assets.findAssetId(PreferenceStyleMap[String(silenced)].icon)}
+                        icon={assets.findAssetId(preference().icon)}
                         onPress={() => {
-                            const newPref = NextPreferenceActionMap[String(silenced)](channelId)
-                            setSilenced(newPref)
-
-                            const toastData = PreferenceStyleMap[String(newPref)]
-                            toasts.showToast(toastData.content, assets.findAssetId(toastData.icon))
+                            setSilenced(NextPreference[key])
+                            const { description: content, icon, action } = Preferences[String(NextPreference[key]) as keyof typeof Preferences]
+                            const rt = action(channelId)
+                            if (rt) toasts.showToast(content, assets.findAssetId(icon))
                         }}
-                        variant={PreferenceStyleMap[String(silenced)].variant}
+                        variant={preference().buttonVariant}
                         size="sm"
                     />,
                     ...fragmentProps.children,
@@ -86,6 +91,7 @@ export const patch = (storage: PluginStorage, unpatches: UnpatchFunction[]) => {
     )
 
     unpatches.push(
+        // @ts-expect-error: Don't care
         patcher.instead('ring', callModule, (args: Parameters<CallModule['ring']>, ring) => {
             const silentCall = storage.getFirstDefined(`silentCall.users.${args[0]}`, 'silentCall.default')
             if (!silentCall) return ring.apply(callModule, args)

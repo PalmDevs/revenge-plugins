@@ -30,8 +30,8 @@ export default function AudioOutputDevicesSelectionSheet({
                             title="Audio Devices"
                             hasIcons
                             value={storage.get('rememberOutputDevice.device.deviceId')}
-                            onChange={deviceId => {
-                                const device = devices.find(dv => dv.deviceId === deviceId)
+                            onChange={(deviceId: number) => {
+                                const device = devices.find(dv => dv.deviceId === deviceId)!
                                 storage.set('rememberOutputDevice.device', device)
                                 setAudioOutputDevice(device)
                                 if (onPress) onPress()
