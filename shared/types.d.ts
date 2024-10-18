@@ -22,13 +22,13 @@ type InternalPlusOne<S extends string> = S extends '9'
           : `${[1, 2, 3, 4, 5, 6, 7, 8, 9][Digit]}${Rest}`
       : never
 
-type PlusOne<T extends number> = T extends -1
+export type PlusOne<T extends number> = T extends -1
     ? 0
     : `${T}` extends `-${infer Abs}`
       ? ParseInt<PutSign<RemoveLeadingZeros<ReverseString<InternalMinusOne<ReverseString<Abs>>>>>>
       : ParseInt<RemoveLeadingZeros<ReverseString<InternalPlusOne<ReverseString<`${T}`>>>>>
 
-type PreviousNumbers<T extends number, Acc extends unknown[] = []> = T extends 0
+export type PreviousNumbers<T extends number, Acc extends unknown[] = []> = T extends 0
     ? never // If T is 0, return never (no previous numbers)
     : Acc['length'] extends T
       ? Exclude<Acc[number], 0> // If the accumulated length matches T, return the accumulated numbers
@@ -42,15 +42,15 @@ type Join<K, P> = K extends string | number
         : never
     : never
 
-declare type Prev = [never, 0, 1, 2, 3, 4]
+type Prev = [never, 0, 1, 2, 3, 4]
 
-type Paths<T, D = 5> = [D] extends [never]
+export type Paths<T, D = 5> = [D] extends [never]
     ? never
     : T extends object
       ? { [K in keyof T]-?: K extends string | number ? `${K}` | Join<K, Paths<T[K], Prev[D]>> : never }[keyof T]
       : ''
 
-type ValueOfPath<T, P extends string, D = 5> = [D] extends [never]
+export type ValueOfPath<T, P extends string, D = 5> = [D] extends [never]
     ? never
     : P extends `${infer K}.${infer Rest}`
       ? K extends keyof T

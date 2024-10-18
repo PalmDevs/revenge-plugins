@@ -2,7 +2,7 @@ import { findByProps, findByPropsLazy } from '@revenge-mod/metro'
 import { ReactNative } from '@revenge-mod/metro/common'
 import { lazyDestructure, proxyLazy } from '@revenge-mod/utils/lazy'
 
-import { TextStyleSheet, resolveSemanticColor, semanticColors } from 'shared:themes'
+import { TextStyleSheet, type TextStyleSheetVariant, resolveSemanticColor, semanticColors } from 'shared:themes'
 import { findPropLazy } from 'shared:utils'
 
 import type { DiscordTextStyles } from '@revenge-mod/revenge/src/lib/ui/types'
@@ -157,7 +157,7 @@ interface ActionSheetProps {
 export type ActionSheet = React.FC<React.PropsWithChildren<ActionSheetProps>>
 
 type TextProps = React.ComponentProps<typeof RN.Text> & {
-    variant?: DiscordTextStyles
+    variant?: TextStyleSheetVariant
     color?: string // TODO: type this
     lineClamp?: number
     maxFontSizeMultiplier?: number

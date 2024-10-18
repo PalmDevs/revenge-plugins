@@ -34,8 +34,8 @@ export default class StorageManager<
         let migrationStorage: CurrentStorage = this._storage
 
         for (let currentVersion = migrationStorage.version; currentVersion < this.version; currentVersion++) {
-            // Don't fix migration: any here, it is useless and will slow TypeScript down even more
-            const migration = this._migrations[currentVersion]
+            // @ts-expect-error: Don't fix migration: any here, it is useless and will slow TypeScript down even more
+            const migration = this._migrations[currentVersion] as (oldStorage: GenericStorage) => CurrentStorage
             migrationStorage = migration(migrationStorage)
             migrationStorage.version = currentVersion + 1
         }
@@ -64,7 +64,7 @@ export default class StorageManager<
             }
         }
 
-        return value
+        return this
     }
 
     get<K extends Paths<CurrentStorage>>(path: K): ValueOfPath<CurrentStorage, K> {
@@ -72,11 +72,11 @@ export default class StorageManager<
 
         for (const nextKey of path.split('.')) {
             const node = currentNode ?? this._storage
-            if (nextKey in (node as SerializableObject)) currentNode = node[nextKey]
-            else break
+            if (nextKey in (node as SerializableObject)) currentNode = node[nextKey as keyof typeof node]
+            else return undefined!
         }
 
-        if (currentNode) return currentNode as ValueOfPath<CurrentStorage, K>
+        return currentNode as ValueOfPath<CurrentStorage, K>
     }
 
     getFirstDefined<Ks extends [Paths<CurrentStorage>, ...Paths<CurrentStorage>[]]>(
@@ -90,6 +90,7 @@ export default class StorageManager<
 
     setIfNotDefined<K extends Paths<CurrentStorage>>(path: K, valueCb: () => ValueOfPath<CurrentStorage, K>) {
         if (this.get(path) === undefined) this.set(path, valueCb())
+        return this
     }
 
     unset<K extends Paths<CurrentStorage>>(path: K) {
@@ -100,16 +101,13 @@ export default class StorageManager<
             const nextKey = steps[i]
 
             if (i === steps.length - 1) {
-                delete currentNode[nextKey]
-            } else {
-                const node = currentNode ?? this._storage
-                if (nextKey in (node as SerializableObject)) currentNode = node[nextKey]
-                else {
-                    const node = {}
-                    currentNode[nextKey] = node
-                    currentNode = node
-                }
-            }
+                delete currentNode![nextKey as keyof typeof currentNode]
+                return true
+            } 
+
+            const node = currentNode ?? this._storage
+            if (nextKey in (node as SerializableObject)) currentNode = node[nextKey as keyof typeof node]
+            else return false
         }
     }
 }
