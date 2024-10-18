@@ -14,10 +14,10 @@ const dev = process.argv.includes('--dev') || process.argv.includes('-d')
 
 const hasher = new Bun.CryptoHasher('sha256')
 
-const importMap = {
+const ImportMap = {
     react: 'React',
     'react-native': 'ReactNative',
-}
+} as Record<string, string>
 
 if (!existsSync('./dist')) await mkdir('./dist')
 
@@ -34,7 +34,7 @@ for (const plugin of plugins.length ? plugins : await readdir('./plugins')) {
                 if (warning.code === 'MISSING_NAME_OPTION_FOR_IIFE_EXPORT') return
                 return console.warn(warning.message)
             },
-            external: id => Boolean(id.match(/^@(revenge-mod|vendetta)/)) || importMap[id],
+            external: id => Boolean(id.match(/^@(revenge-mod|vendetta)/)) || !!ImportMap[id],
             plugins: [
                 tsConfigPaths(),
                 nodeResolve(),
@@ -85,26 +85,29 @@ for (const plugin of plugins.length ? plugins : await readdir('./plugins')) {
                 {
                     name: 'file-parser',
                     async transform(code, id) {
-                        const parsers = {
+                        const Parsers = {
                             text: ['html', 'css', 'svg'],
                             raw: ['json'],
                             uri: ['png'],
                         }
-                        const extToMime = {
+                        const ExtToMimeMap = {
                             png: 'image/png',
                         }
 
                         const ext = extname(id).slice(1)
-                        const mode = Object.entries(parsers).find(([_, v]) => v.includes(ext))?.[0]
+                        const mode = Object.entries(Parsers).find(([_, v]) => v.includes(ext))?.[0]
                         if (!mode) return null
 
                         let thing: string
+
                         if (mode === 'text') thing = JSON.stringify(code)
                         else if (mode === 'raw') thing = code
                         else if (mode === 'uri')
                             thing = JSON.stringify(
-                                `data:${extToMime[ext] ?? ''};base64,${Buffer.from(await Bun.file(id).arrayBuffer()).toString('base64')}`,
+                                // @ts-expect-error: Intentional
+                                `data:${ExtToMimeMap[ext] ?? ''};base64,${Buffer.from(await Bun.file(id).arrayBuffer()).toString('base64')}`,
                             )
+                        else throw new Error(`Unable to parse file (no mode specified): ${id}`)
 
                         if (thing) return { code: `export default ${thing}` }
                     },
@@ -123,7 +126,7 @@ for (const plugin of plugins.length ? plugins : await readdir('./plugins')) {
             .write({
                 file: `./dist/${plugin}/index.js`,
                 globals(id) {
-                    if (importMap[id]) return importMap[id]
+                    if (ImportMap[id]) return ImportMap[id]
 
                     const replaceSlashWithDot = (s: string) => s.replaceAll('/', '.')
 
@@ -137,7 +140,7 @@ for (const plugin of plugins.length ? plugins : await readdir('./plugins')) {
                         console.warn(`Unable to resolve import path for "${path}"!`)
                     }
 
-                    return null
+                    throw new Error(`Unable to resolve import path for: ${id}`)
                 },
                 format: 'iife',
                 compact: true,
