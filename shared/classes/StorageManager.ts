@@ -8,13 +8,13 @@ export default class StorageManager<
      * The actual storage, can be any version of the storage, may need migrations
      */
     private readonly _storage: CurrentStorage
-    private readonly _migrations: SettingsManagerMigrations<CurrentStorage, CurrentStorage['version'], StorageHistory>
+    private readonly _migrations: StorageManagerMigrations<CurrentStorage, CurrentStorage['version'], StorageHistory>
     /**
      * The up-to-date version of the storage
      */
     readonly version: CurrentStorage['version']
 
-    constructor(options: SettingsManagerOptions<CurrentStorage, CurrentStorage['version'], StorageHistory>) {
+    constructor(options: StorageManagerOptions<CurrentStorage, CurrentStorage['version'], StorageHistory>) {
         // @ts-expect-error: This will eventually be the right type
         this._storage = options.storage
         this.version = options.version
@@ -112,7 +112,7 @@ export default class StorageManager<
     }
 }
 
-export type SettingsManagerOptions<
+export type StorageManagerOptions<
     CurrentStorage extends _Storage,
     CurrentVersion extends number,
     StorageHistory extends Record<PreviousNumbers<CurrentVersion>, GenericStorage>,
@@ -122,7 +122,7 @@ export type SettingsManagerOptions<
     initialize: () => CurrentStorage
     // ... while this is the latest version of the storage
     version: CurrentVersion
-    migrations: SettingsManagerMigrations<CurrentStorage, CurrentVersion, StorageHistory>
+    migrations: StorageManagerMigrations<CurrentStorage, CurrentVersion, StorageHistory>
 }
 
 export type Storage<T extends GenericStorage, V extends number> = _Storage<T, V>
@@ -140,7 +140,7 @@ interface SerializableObject {
 
 export type Serializable = SerializableValue | SerializableObject | Array<SerializableValue | SerializableObject>
 
-type SettingsManagerMigrations<
+type StorageManagerMigrations<
     T,
     V extends number,
     H extends Record<PreviousNumbers<V>, GenericStorage>,
