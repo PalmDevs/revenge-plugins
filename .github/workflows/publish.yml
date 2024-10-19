@@ -4,6 +4,10 @@ on:
         branches: 
             - "main"
             - "dev"
+        paths:
+            - "!README.md"
+            - "!biome.json"
+            - "!*.d.ts"
 
 jobs:
     build:
