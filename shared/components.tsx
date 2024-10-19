@@ -5,7 +5,6 @@ import { lazyDestructure, proxyLazy } from '@revenge-mod/utils/lazy'
 import { TextStyleSheet, type TextStyleSheetVariant, resolveSemanticColor, semanticColors } from 'shared:themes'
 import { findPropLazy } from 'shared:utils'
 
-import type { DiscordTextStyles } from '@revenge-mod/revenge/src/lib/ui/types'
 import type { Nullish } from '@revenge-mod/revenge/src/lib/utils/types'
 import type { ReactNode } from 'react'
 import type * as RN from 'react-native'
