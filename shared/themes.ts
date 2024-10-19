@@ -1,10 +1,26 @@
 import { findPropLazy } from 'shared:utils'
-import { findByStoreNameLazy } from '@revenge-mod/metro'
-import { color } from '@revenge-mod/ui'
+import { findByPropsLazy, findByStoreNameLazy } from '@revenge-mod/metro'
+import { constants } from "@revenge-mod/metro/common";
+// import { color } from '@revenge-mod/ui'
 
 import type { ReactNative } from '@revenge-mod/metro/common'
 
-export const { resolveSemanticColor, semanticColors } = color
+const color = findByPropsLazy("SemanticColor");
+
+// export const { resolveSemanticColor, semanticColors } = color
+export const semanticColors = (color?.default?.colors ?? constants?.ThemeColorMap) as Record<string, any>;
+export const rawColors = (color?.default?.unsafe_rawColors ?? constants?.Colors) as Record<string, string>;
+
+const colorResolver = color.default.meta ??= color.default.internal;
+
+export function isSemanticColor(sym: any): boolean {
+    return colorResolver.isSemanticColor(sym);
+}
+
+export function resolveSemanticColor(sym: any, theme = ThemeStore.theme): string {
+    return colorResolver.resolveSemanticColor(theme, sym);
+}
+
 export const ThemeStore = findByStoreNameLazy('ThemeStore')
 export const TextStyleSheet = findPropLazy('TextStyleSheet') as TextStyleSheet
 
