@@ -29,19 +29,19 @@ const Preferences = {
         icon: 'BellIcon',
         description: 'Following the global setting for this user',
         buttonVariant: 'tertiary',
-        action: (cid: string) => storage.set(`silentCall.users.${cid}`, true),
+        action: (cid: string) => storage.unset(`silentCall.users.${cid}`),
     },
     true: {
         icon: 'BellZIcon',
         description: 'Calling will now silently call this user',
         buttonVariant: 'primary',
-        action: (cid: string) => storage.set(`silentCall.users.${cid}`, false),
+        action: (cid: string) => storage.set(`silentCall.users.${cid}`, true),
     },
     false: {
         icon: 'ic_notification_settings_24px',
         description: 'Calling will now ring this user',
         buttonVariant: 'secondary',
-        action: (cid: string) => storage.unset(`silentCall.users.${cid}`),
+        action: (cid: string) => storage.set(`silentCall.users.${cid}`, false),
     },
 } as const
 
@@ -78,7 +78,11 @@ export const patch = (storage: PluginStorage, unpatches: UnpatchFunction[]) => {
                         icon={assets.findAssetId(preference().icon)}
                         onPress={() => {
                             setSilenced(NextPreference[key])
-                            const { description: content, icon, action } = Preferences[String(NextPreference[key]) as keyof typeof Preferences]
+                            const {
+                                description: content,
+                                icon,
+                                action,
+                            } = Preferences[String(NextPreference[key]) as keyof typeof Preferences]
                             const rt = action(channelId)
                             if (rt) toasts.showToast(content, assets.findAssetId(icon))
                         }}
