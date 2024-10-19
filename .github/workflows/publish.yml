@@ -24,12 +24,16 @@ jobs:
                 token: ${{ secrets.BUILDS_PUSH_TOKEN }}
                 ref: ${{ github.ref }}
 
-          - name: Set env
-            id: env
-            run: |
-                echo "hash=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          - name: Cache dependencies
+          - uses: actions/cache@v4
+            with:
+                path: ~/.bun/install/cache
+                key: ${{ runner.os }}-${{ matrix.bun }}-bun-${{ hashFiles('**/bun.lockb') }}
+                restore-keys: |
+                  ${{ runner.os }}-${{ matrix.bun }}-bun-
 
-          - uses: oven-sh/setup-bun@v2
+          - name: Setup Bun
+            uses: oven-sh/setup-bun@v2
             with:
               bun-version: latest
 
