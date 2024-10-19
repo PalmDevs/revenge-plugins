@@ -2,19 +2,23 @@ import { assets, patcher } from '@revenge-mod/api'
 import { findByNameLazy, findByPropsLazy } from '@revenge-mod/metro'
 import { ReactNative } from '@revenge-mod/metro/common'
 import { components } from '@revenge-mod/ui'
+import { findInReactTree } from '@revenge-mod/utils'
 import { storage as rawStorage } from '@vendetta/plugin'
 
 import StorageManager, { type Storage } from 'shared:classes/StorageManager'
-import { Stack, TableRow, TableRowGroup, TableSwitchRow } from 'shared:components'
+import { Stack, TableRadioGroup, TableRadioRow, TableRow, TableRowGroup, TableSwitchRow } from 'shared:components'
 
 type PluginStorageStruct = Storage<
     {
-        voice: boolean
-        gift: boolean
-        thread: boolean
-        app: boolean
+        hide: {
+            voice: boolean
+            gift: boolean
+            thread: boolean
+            app: boolean,
+        }
+        neverDismiss: boolean
     },
-    1
+    2
 >
 
 export type PluginStorage = typeof storage
@@ -22,21 +26,32 @@ export type PluginStorage = typeof storage
 export const storage = new StorageManager<
     PluginStorageStruct,
     {
-        1: PluginStorageStruct
+        1: Storage<PluginStorageStruct['hide'], 1>
+        2: PluginStorageStruct
     }
 >({
     storage: rawStorage as PluginStorageStruct,
     initialize() {
         return {
-            version: 1,
-            app: true,
-            gift: true,
-            thread: true,
-            voice: true,
+            version: 2,
+            hide: {
+                app: true,
+                gift: true,
+                thread: true,
+                voice: true,
+            },
+            neverDismiss: true,
         }
     },
-    version: 1,
-    migrations: {},
+    version: 2,
+    migrations: {
+        1: ({ version, ...oldStorage }) => {
+            return {
+                hide: oldStorage,
+                neverDismiss: true,
+            }
+        }
+    },
 })
 
 const unpatches: UnpatchFunction[] = []
@@ -62,14 +77,22 @@ export default {
         unpatches.push(
             patcher.after('render', ParentChatInput, (_, tree) => {
                 const props = tree.props.children.props
-                if (props.canSendVoiceMessage) props.canSendVoiceMessage = !storage.get('voice')
-                if (props.canStartThreads) props.canStartThreads = !storage.get('thread')
-                if (props.isAppLauncherEnabled) props.isAppLauncherEnabled = !storage.get('app')
+                if (props.canSendVoiceMessage) props.canSendVoiceMessage = !storage.get('hide.voice')
+                if (props.canStartThreads) props.canStartThreads = !storage.get('hide.thread')
+                if (props.isAppLauncherEnabled) props.isAppLauncherEnabled = !storage.get('hide.app')
 
                 // For some ungodly reason, this cannot be done right in parent ChatInput
                 // so I had to waste my time trying to find the child component
                 // Why does this prop even exist if it's gonna persistently show anyways???
-                ChatInput.defaultProps.hideGiftButton = storage.get('gift')
+                ChatInput.defaultProps.hideGiftButton = storage.get('hide.gift')
+            }),
+        )
+
+        unpatches.push(
+            patcher.after('render', ChatInput.prototype, (_, tree) => {
+                // biome-ignore lint/suspicious/noExplicitAny: No.
+                const input = findInReactTree(tree, (t: any) => 'forceAnimateButtons' in t.props)
+                input.props.forceAnimateButtons = storage.get('neverDismiss')
             }),
         )
 
@@ -87,27 +110,38 @@ export default {
             <components.ErrorBoundary>
                 <ReactNative.ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 38 }}>
                     <Stack style={{ paddingVertical: 24, paddingHorizontal: 12 }} spacing={24}>
-                        <TableRowGroup title="Chat Buttons">
+                        <TableRowGroup title="Hide Buttons">
                             {(
                                 [
                                     ['app launcher', 'AppsIcon', 'app'],
                                     ['gift button', 'ic_gift', 'gift'],
                                     ['create thread button', 'ThreadPlusIcon', 'thread'],
                                     ['voice message button', 'MicrophoneIcon', 'voice'],
-                                ] as Array<[name: string, icon: string, key: keyof PluginStorageStruct]>
+                                ] as Array<[name: string, icon: string, key: keyof PluginStorageStruct['hide']]>
                             ).map(([label, icon, key]) => (
                                 <TableSwitchRow
                                     key={key}
                                     icon={<TableRow.Icon source={assets.findAssetId(icon)} />}
                                     label={`Hide ${label}`}
-                                    value={storage.get(key)}
+                                    value={storage.get(`hide.${key}`)}
                                     onValueChange={(v: boolean) => {
-                                        storage.set(key, v)
+                                        storage.set(`hide.${key}`, v)
                                         forceUpdate()
                                     }}
                                 />
                             ))}
                         </TableRowGroup>
+                        <TableRadioGroup
+                            title="Collapse Behavior"
+                            value={storage.get('neverDismiss')}
+                            onChange={(v: boolean) => {
+                                storage.set('neverDismiss', v)
+                                forceUpdate()
+                            }}
+                        >
+                            <TableRadioRow label="Never collapse" value={true} />
+                            <TableRadioRow label="Collapse while typing" value={false} />
+                        </TableRadioGroup>
                     </Stack>
                 </ReactNative.ScrollView>
             </components.ErrorBoundary>
