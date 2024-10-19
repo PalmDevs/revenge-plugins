@@ -2,12 +2,10 @@ import { assets, patcher } from '@revenge-mod/api'
 import { findByNameLazy, findByPropsLazy } from '@revenge-mod/metro'
 import { ReactNative } from '@revenge-mod/metro/common'
 import { components } from '@revenge-mod/ui'
-import { findInReactTree } from '@revenge-mod/utils'
 import { storage as rawStorage } from '@vendetta/plugin'
 
 import StorageManager, { type Storage } from 'shared:classes/StorageManager'
 import { Stack, TableRow, TableRowGroup, TableSwitchRow } from 'shared:components'
-import { inspect } from 'shared:utils'
 
 type PluginStorageStruct = Storage<
     {
