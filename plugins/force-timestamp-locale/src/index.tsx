@@ -44,13 +44,20 @@ let momentSetLocale: (locale: string) => void
 export default {
     onLoad: () => {
         const origLocale = moment.locale()
-        onLocaleUpdate(storage.get('locale')!)
+
+        // biome-ignore lint/suspicious/noExplicitAny: I hate Bunny typings
+        const patchedGetSetLocale = (set: boolean) => (args: unknown[], origFunc: any) => {
+            if (args.length === 0) return origFunc()
+            if (set) momentSetLocale = origFunc
+        }
+
         unpatches.push(
-            // biome-ignore lint/suspicious/noExplicitAny: I hate Bunny typings
-            patcher.instead('locale', moment, (_, origFunc: any) => void (momentSetLocale = origFunc)),
-            patcher.instead('lang', moment, () => {}),
+            patcher.instead('locale', moment, patchedGetSetLocale(true)),
+            patcher.instead('lang', moment, patchedGetSetLocale(false)),
             () => momentSetLocale(origLocale),
         )
+
+        onLocaleUpdate(storage.get('locale')!)
     },
     onUnload: () => {
         for (const unpatch of unpatches) unpatch()
