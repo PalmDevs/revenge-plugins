@@ -24,7 +24,7 @@ export const storage = new StorageManager<
     storage: rawStorage as PluginStorageStruct,
     initialize() {
         return {
-            locale: 'en-GB',
+            locale: 'en-gb',
             version: 1,
         }
     },
