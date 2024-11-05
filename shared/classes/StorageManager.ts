@@ -103,7 +103,7 @@ export default class StorageManager<
             if (i === steps.length - 1) {
                 delete currentNode![nextKey as keyof typeof currentNode]
                 return true
-            } 
+            }
 
             const node = currentNode ?? this._storage
             if (nextKey in (node as SerializableObject)) currentNode = node[nextKey as keyof typeof node]
