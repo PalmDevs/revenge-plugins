@@ -1,7 +1,6 @@
 import { assets, patcher } from '@revenge-mod/api'
 import { findByNameLazy, findByPropsLazy } from '@revenge-mod/metro'
 import { ReactNative } from '@revenge-mod/metro/common'
-import { components } from '@revenge-mod/ui'
 import { findInReactTree } from '@revenge-mod/utils'
 import { storage as rawStorage } from '@vendetta/plugin'
 
@@ -14,7 +13,7 @@ type PluginStorageStruct = Storage<
             voice: boolean
             gift: boolean
             thread: boolean
-            app: boolean,
+            app: boolean
         }
         neverDismiss: boolean
     },
@@ -50,7 +49,7 @@ export const storage = new StorageManager<
                 hide: oldStorage,
                 neverDismiss: true,
             }
-        }
+        },
     },
 })
 
@@ -107,44 +106,42 @@ export default {
         const [_, forceUpdate] = React.useReducer(x => ~x, 0)
 
         return (
-            <components.ErrorBoundary>
-                <ReactNative.ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 38 }}>
-                    <Stack style={{ paddingVertical: 24, paddingHorizontal: 12 }} spacing={24}>
-                        <TableRowGroup title="Hide Buttons">
-                            {(
-                                [
-                                    ['app launcher', 'AppsIcon', 'app'],
-                                    ['gift button', 'ic_gift', 'gift'],
-                                    ['create thread button', 'ThreadPlusIcon', 'thread'],
-                                    ['voice message button', 'MicrophoneIcon', 'voice'],
-                                ] as Array<[name: string, icon: string, key: keyof PluginStorageStruct['hide']]>
-                            ).map(([label, icon, key]) => (
-                                <TableSwitchRow
-                                    key={key}
-                                    icon={<TableRow.Icon source={assets.findAssetId(icon)} />}
-                                    label={`Hide ${label}`}
-                                    value={storage.get(`hide.${key}`)}
-                                    onValueChange={(v: boolean) => {
-                                        storage.set(`hide.${key}`, v)
-                                        forceUpdate()
-                                    }}
-                                />
-                            ))}
-                        </TableRowGroup>
-                        <TableRadioGroup
-                            title="Collapse Behavior"
-                            value={storage.get('neverDismiss')}
-                            onChange={(v: boolean) => {
-                                storage.set('neverDismiss', v)
-                                forceUpdate()
-                            }}
-                        >
-                            <TableRadioRow label="Never collapse" value={true} />
-                            <TableRadioRow label="Collapse while typing" value={false} />
-                        </TableRadioGroup>
-                    </Stack>
-                </ReactNative.ScrollView>
-            </components.ErrorBoundary>
+            <ReactNative.ScrollView style={{ flex: 1 }}>
+                <Stack style={{ paddingVertical: 24, paddingHorizontal: 12 }} spacing={24}>
+                    <TableRowGroup title="Hide Buttons">
+                        {(
+                            [
+                                ['app launcher', 'AppsIcon', 'app'],
+                                ['gift button', 'ic_gift', 'gift'],
+                                ['create thread button', 'ThreadPlusIcon', 'thread'],
+                                ['voice message button', 'MicrophoneIcon', 'voice'],
+                            ] as Array<[name: string, icon: string, key: keyof PluginStorageStruct['hide']]>
+                        ).map(([label, icon, key]) => (
+                            <TableSwitchRow
+                                key={key}
+                                icon={<TableRow.Icon source={assets.findAssetId(icon)} />}
+                                label={`Hide ${label}`}
+                                value={storage.get(`hide.${key}`)}
+                                onValueChange={(v: boolean) => {
+                                    storage.set(`hide.${key}`, v)
+                                    forceUpdate()
+                                }}
+                            />
+                        ))}
+                    </TableRowGroup>
+                    <TableRadioGroup
+                        title="Collapse Behavior"
+                        value={storage.get('neverDismiss')}
+                        onChange={(v: boolean) => {
+                            storage.set('neverDismiss', v)
+                            forceUpdate()
+                        }}
+                    >
+                        <TableRadioRow label="Never collapse" value={true} />
+                        <TableRadioRow label="Collapse while typing" value={false} />
+                    </TableRadioGroup>
+                </Stack>
+            </ReactNative.ScrollView>
         )
     },
 }
