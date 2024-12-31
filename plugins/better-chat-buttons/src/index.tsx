@@ -1,7 +1,6 @@
 import { assets, patcher } from '@revenge-mod/api'
-import { findByNameLazy, findByPropsLazy } from '@revenge-mod/metro'
+import { findByFilePath, findByPropsLazy } from '@revenge-mod/metro'
 import { ReactNative } from '@revenge-mod/metro/common'
-import { findInReactTree } from '@revenge-mod/utils'
 import { storage as rawStorage } from '@vendetta/plugin'
 
 import StorageManager, { type Storage } from 'shared:classes/StorageManager'
@@ -15,9 +14,12 @@ type PluginStorageStruct = Storage<
             thread: boolean
             app: boolean
         }
+        show: {
+            thread: boolean
+        }
         neverDismiss: boolean
     },
-    2
+    3
 >
 
 export type PluginStorage = typeof storage
@@ -26,23 +28,27 @@ export const storage = new StorageManager<
     PluginStorageStruct,
     {
         1: Storage<PluginStorageStruct['hide'], 1>
-        2: PluginStorageStruct
+        2: Omit<PluginStorageStruct, 'show'>
+        3: PluginStorageStruct
     }
 >({
     storage: rawStorage as PluginStorageStruct,
     initialize() {
         return {
-            version: 2,
+            version: 3,
             hide: {
                 app: true,
                 gift: true,
                 thread: true,
                 voice: true,
             },
+            show: {
+                thread: false,
+            },
             neverDismiss: true,
         }
     },
-    version: 2,
+    version: 3,
     migrations: {
         1: ({ version, ...oldStorage }) => {
             return {
@@ -50,6 +56,12 @@ export const storage = new StorageManager<
                 neverDismiss: true,
             }
         },
+        2: old => ({
+            ...old,
+            show: {
+                thread: false,
+            },
+        }),
     },
 })
 
@@ -57,47 +69,31 @@ const unpatches: UnpatchFunction[] = []
 
 export default {
     onLoad: () => {
-        /*
-            The component structure looks like:
-
-            <ParentChatInput>
-                <...>
-                    <ChatInput />
-                </...>
-            </ParentChatInput>
-
-            (yes, they're both named ChatInput)
-        */
-        const { default: ParentChatInput } = findByPropsLazy('ChatInput')
-        const ChatInput = findByNameLazy('ChatInput')
-
-        const intialHideGiftInputValue = ChatInput.defaultProps.hideGiftButton
+        const ChatInput = findByPropsLazy('ChatInput')
+        const ChatInputActions = findByFilePath('modules/chat_input/native/action_buttons/ChatInputActions.tsx')
 
         unpatches.push(
-            patcher.after('render', ParentChatInput, (_, tree) => {
+            patcher.after('render', ChatInput.default, (_, tree) => {
                 const props = tree.props.children.props
                 if (props.canSendVoiceMessage) props.canSendVoiceMessage = !storage.get('hide.voice')
                 if (props.canStartThreads) props.canStartThreads = !storage.get('hide.thread')
                 if (props.isAppLauncherEnabled) props.isAppLauncherEnabled = !storage.get('hide.app')
-
-                // For some ungodly reason, this cannot be done right in parent ChatInput
-                // so I had to waste my time trying to find the child component
-                // Why does this prop even exist if it's gonna persistently show anyways???
-                ChatInput.defaultProps.hideGiftButton = storage.get('hide.gift')
             }),
         )
 
         unpatches.push(
-            patcher.after('render', ChatInput.prototype, (_, tree) => {
-                // biome-ignore lint/suspicious/noExplicitAny: No.
-                const input = findInReactTree(tree, (t: any) => 'forceAnimateButtons' in t.props)
-                input.props.forceAnimateButtons = storage.get('neverDismiss')
+            patcher.before('render', ChatInputActions.default.type, ([props]) => {
+                // TODO: Test if it works, try props.hideAppsButton also
+                // props.isAppLauncherEnabled = !storage.get('show.app')
+
+                props.shouldShowThread = storage.get('show.thread')
+                props.forceShowActions = storage.get('neverDismiss')
+                props.shouldShowGiftButton = !storage.get('hide.gift')
+
+                // I don't know what this button does
+                // props.shouldShowHideChatInputButton = true
             }),
         )
-
-        unpatches.push(() => {
-            ChatInput.defaultProps.hideGiftButton = intialHideGiftInputValue
-        })
     },
     onUnload: () => {
         for (const unpatch of unpatches) unpatch()
@@ -111,23 +107,38 @@ export default {
                     <TableRowGroup title="Hide Buttons">
                         {(
                             [
-                                ['app launcher', 'AppsIcon', 'app'],
-                                ['gift button', 'ic_gift', 'gift'],
-                                ['create thread button', 'ThreadPlusIcon', 'thread'],
-                                ['voice message button', 'MicrophoneIcon', 'voice'],
+                                ['App Launcher button', 'AppsIcon', 'app'],
+                                ['Gift button', 'ic_gift', 'gift'],
+                                ['New Thread button', 'ThreadPlusIcon', 'thread'],
+                                ['Voice Message button', 'MicrophoneIcon', 'voice'],
                             ] as Array<[name: string, icon: string, key: keyof PluginStorageStruct['hide']]>
                         ).map(([label, icon, key]) => (
                             <TableSwitchRow
                                 key={key}
                                 icon={<TableRow.Icon source={assets.findAssetId(icon)} />}
                                 label={`Hide ${label}`}
-                                value={storage.get(`hide.${key}`)}
+                                disabled={key === 'thread' && storage.get(`show.${key}`)}
+                                value={
+                                    key === 'thread' && storage.get(`show.${key}`) ? false : storage.get(`hide.${key}`)
+                                }
                                 onValueChange={(v: boolean) => {
                                     storage.set(`hide.${key}`, v)
                                     forceUpdate()
                                 }}
                             />
                         ))}
+                    </TableRowGroup>
+                    <TableRowGroup title="Force Show Buttons">
+                        <TableSwitchRow
+                            icon={<TableRow.Icon source={assets.findAssetId('ThreadPlusIcon')} />}
+                            label="Force show New Thread button"
+                            subLabel="Show the thread button even when you can't start threads, or when the chat input is not focused"
+                            value={storage.get('show.thread')}
+                            onValueChange={(v: boolean) => {
+                                storage.set('show.thread', v)
+                                forceUpdate()
+                            }}
+                        />
                     </TableRowGroup>
                     <TableRadioGroup
                         title="Collapse Behavior"
