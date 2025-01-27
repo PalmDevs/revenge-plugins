@@ -1,5 +1,5 @@
 import { assets, patcher } from '@revenge-mod/api'
-import { findByFilePath, findByPropsLazy } from '@revenge-mod/metro'
+import { findByDisplayNameLazy, findByFilePathLazy } from '@revenge-mod/metro'
 import { ReactNative } from '@revenge-mod/metro/common'
 import { storage as rawStorage } from '@vendetta/plugin'
 
@@ -69,29 +69,21 @@ const unpatches: UnpatchFunction[] = []
 
 export default {
     onLoad: () => {
-        const ChatInput = findByPropsLazy('ChatInput')
-        const ChatInputActions = findByFilePath('modules/chat_input/native/action_buttons/ChatInputActions.tsx')
-
-        unpatches.push(
-            patcher.after('render', ChatInput.default, (_, tree) => {
-                const props = tree.props.children.props
-                if (props.canSendVoiceMessage) props.canSendVoiceMessage = !storage.get('hide.voice')
-                if (props.canStartThreads) props.canStartThreads = !storage.get('hide.thread')
-                if (props.isAppLauncherEnabled) props.isAppLauncherEnabled = !storage.get('hide.app')
-            }),
+        const ChatInputSendButton = findByFilePathLazy('modules/chat_input/native/ChatInputSendButton.tsx', true)
+        const ChatInputActions = findByFilePathLazy(
+            'modules/chat_input/native/action_buttons/ChatInputActions.tsx',
+            true,
         )
 
         unpatches.push(
-            patcher.before('render', ChatInputActions.default.type, ([props]) => {
-                // TODO: Test if it works, try props.hideAppsButton also
-                // props.isAppLauncherEnabled = !storage.get('show.app')
-
-                props.shouldShowThread = storage.get('show.thread')
+            patcher.before('render', ChatInputSendButton.type, ([props]) => {
+                if (props.canSendVoiceMessage) props.canSendVoiceMessage = !storage.get('hide.voice')
+            }),
+            patcher.before('render', ChatInputActions.type, ([props]) => {
+                if (props.isAppLauncherEnabled) props.isAppLauncherEnabled = !storage.get('hide.app')
+                props.canStartThreads = storage.get('show.thread') || !storage.get('hide.thread')
                 props.forceShowActions = storage.get('neverDismiss')
                 props.shouldShowGiftButton = !storage.get('hide.gift')
-
-                // I don't know what this button does
-                // props.shouldShowHideChatInputButton = true
             }),
         )
     },
@@ -140,17 +132,6 @@ export default {
                             }}
                         />
                     </TableRowGroup>
-                    <TableRadioGroup
-                        title="Collapse Behavior"
-                        value={storage.get('neverDismiss')}
-                        onChange={(v: boolean) => {
-                            storage.set('neverDismiss', v)
-                            forceUpdate()
-                        }}
-                    >
-                        <TableRadioRow label="Never collapse" value={true} />
-                        <TableRadioRow label="Collapse while typing" value={false} />
-                    </TableRadioGroup>
                 </Stack>
             </ReactNative.ScrollView>
         )
