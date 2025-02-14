@@ -1,5 +1,5 @@
 import { assets, patcher } from '@revenge-mod/api'
-import { findByDisplayNameLazy, findByFilePathLazy } from '@revenge-mod/metro'
+import metro from '@revenge-mod/metro'
 import { ReactNative } from '@revenge-mod/metro/common'
 import { storage as rawStorage } from '@vendetta/plugin'
 
@@ -67,13 +67,23 @@ export const storage = new StorageManager<
 
 const unpatches: UnpatchFunction[] = []
 
+const {
+    factories: { createFilterDefinition },
+    lazy: { createLazyModule },
+} = metro
+
+const byTypeDisplayName = createFilterDefinition<[displayName: string]>(
+    ([name], m) => m?.type?.displayName === name,
+    ([name]) => `palmdevs.byTypeDisplayName(${name})`,
+)
+
+const findByTypeDisplayNameLazy = (displayName: string, expDefault = true) =>
+    createLazyModule(expDefault ? byTypeDisplayName(displayName) : byTypeDisplayName.byRaw(displayName))
+
 export default {
     onLoad: () => {
-        const ChatInputSendButton = findByFilePathLazy('modules/chat_input/native/ChatInputSendButton.tsx', true)
-        const ChatInputActions = findByFilePathLazy(
-            'modules/chat_input/native/action_buttons/ChatInputActions.tsx',
-            true,
-        )
+        const ChatInputSendButton = findByTypeDisplayNameLazy('ChatInputSendButton')
+        const ChatInputActions = findByTypeDisplayNameLazy('ChatInputActions')
 
         unpatches.push(
             patcher.before('render', ChatInputSendButton.type, ([props]) => {
