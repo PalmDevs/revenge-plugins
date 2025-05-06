@@ -85,15 +85,33 @@ export default {
         const ChatInputSendButton = findByTypeDisplayNameLazy('ChatInputSendButton')
         const ChatInputActions = findByTypeDisplayNameLazy('ChatInputActions')
 
+        let actionsRef: React.MutableRefObject<{ onShowActions(): void; onDismissActions(): void }>
+
         unpatches.push(
             patcher.before('render', ChatInputSendButton.type, ([props]) => {
                 if (props.canSendVoiceMessage) props.canSendVoiceMessage = !storage.get('hide.voice')
             }),
-            patcher.before('render', ChatInputActions.type, ([props]) => {
+            // forwardRef moment
+            patcher.before('render', ChatInputActions.type, ([props, ref]) => {
                 if (props.isAppLauncherEnabled) props.isAppLauncherEnabled = !storage.get('hide.app')
                 props.canStartThreads = storage.get('show.thread') || !storage.get('hide.thread')
                 props.forceShowActions = storage.get('neverDismiss')
                 props.shouldShowGiftButton = !storage.get('hide.gift')
+
+                actionsRef = ref
+            }),
+            patcher.after('render', ChatInputActions.type, () => {
+                // ref is only accessible after a render (1 event loop)
+                setImmediate(() => {
+                    // In case it wasn't set (somehow?)
+                    if (actionsRef) {
+                        const { onDismissActions } = actionsRef.current
+                        unpatches.push(() => (actionsRef.current.onDismissActions = onDismissActions))
+                        actionsRef.current.onDismissActions = () => {
+                            if (!storage.get('neverDismiss')) return onDismissActions()
+                        }
+                    }
+                })
             }),
         )
     },
@@ -142,6 +160,17 @@ export default {
                             }}
                         />
                     </TableRowGroup>
+                    <TableRadioGroup
+                        title="Collapse Behavior"
+                        defaultValue={storage.get('neverDismiss')}
+                        onChange={(v: boolean) => {
+                            storage.set('neverDismiss', v)
+                            forceUpdate()
+                        }}
+                    >
+                        <TableRadioRow label="Never collapse" value={true} />
+                        <TableRadioRow label="Collapse while typing" value={false} />
+                    </TableRadioGroup>
                 </Stack>
             </ReactNative.ScrollView>
         )
