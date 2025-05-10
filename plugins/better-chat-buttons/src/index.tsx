@@ -1,6 +1,6 @@
 import { assets, patcher } from '@revenge-mod/api'
 import metro from '@revenge-mod/metro'
-import { ReactNative } from '@revenge-mod/metro/common'
+import { React, ReactNative } from '@revenge-mod/metro/common'
 import { storage as rawStorage } from '@vendetta/plugin'
 
 import StorageManager, { type Storage } from 'shared:classes/StorageManager'
@@ -17,25 +17,31 @@ type PluginStorageStruct = Storage<
         show: {
             thread: boolean
         }
-        neverDismiss: boolean
+        dismiss: {
+            actions: boolean
+            send: boolean
+        }
     },
-    3
+    4
 >
+
+type PluginStorageStructV3 = Omit<PluginStorageStruct, 'dismiss'> & { neverDismiss: boolean }
 
 export type PluginStorage = typeof storage
 
 export const storage = new StorageManager<
     PluginStorageStruct,
     {
-        1: Storage<PluginStorageStruct['hide'], 1>
-        2: Omit<PluginStorageStruct, 'show'>
-        3: PluginStorageStruct
+        1: Storage<PluginStorageStructV3['hide'], 1>
+        2: Omit<PluginStorageStructV3, 'show'>
+        3: PluginStorageStructV3
+        4: PluginStorageStruct
     }
 >({
     storage: rawStorage as PluginStorageStruct,
     initialize() {
         return {
-            version: 3,
+            version: 4,
             hide: {
                 app: true,
                 gift: true,
@@ -45,21 +51,32 @@ export const storage = new StorageManager<
             show: {
                 thread: false,
             },
-            neverDismiss: true,
+            dismiss: {
+                actions: true,
+                send: false,
+            },
         }
     },
-    version: 3,
+    version: 4,
     migrations: {
         1: ({ version, ...oldStorage }) => {
             return {
                 hide: oldStorage,
                 neverDismiss: true,
+                sendDismiss: false,
             }
         },
         2: old => ({
             ...old,
             show: {
                 thread: false,
+            },
+        }),
+        3: old => ({
+            ...old,
+            dismiss: {
+                actions: !old.neverDismiss,
+                send: false,
             },
         }),
     },
@@ -85,33 +102,59 @@ export default {
         const ChatInputSendButton = findByTypeDisplayNameLazy('ChatInputSendButton')
         const ChatInputActions = findByTypeDisplayNameLazy('ChatInputActions')
 
+        let hasText = true
+        let sendBtnRef: React.MutableRefObject<{ setHasText(hasText: boolean): void }>
         let actionsRef: React.MutableRefObject<{ onShowActions(): void; onDismissActions(): void }>
 
         unpatches.push(
-            patcher.before('render', ChatInputSendButton.type, ([props]) => {
+            // forwardRef moment
+            patcher.before('render', ChatInputSendButton.type, ([props, ref]) => {
                 if (props.canSendVoiceMessage) props.canSendVoiceMessage = !storage.get('hide.voice')
+
+                sendBtnRef = ref
             }),
             // forwardRef moment
             patcher.before('render', ChatInputActions.type, ([props, ref]) => {
                 if (props.isAppLauncherEnabled) props.isAppLauncherEnabled = !storage.get('hide.app')
                 props.canStartThreads = storage.get('show.thread') || !storage.get('hide.thread')
-                props.forceShowActions = storage.get('neverDismiss')
                 props.shouldShowGiftButton = !storage.get('hide.gift')
 
                 actionsRef = ref
             }),
             patcher.after('render', ChatInputActions.type, () => {
-                // ref is only accessible after a render (1 event loop)
-                setImmediate(() => {
-                    // In case it wasn't set (somehow?)
-                    if (actionsRef) {
-                        const { onDismissActions } = actionsRef.current
-                        unpatches.push(() => (actionsRef.current.onDismissActions = onDismissActions))
-                        actionsRef.current.onDismissActions = () => {
-                            if (!storage.get('neverDismiss')) return onDismissActions()
+                // ref is only accessible after a render
+                // We wait do double setImmediate to make sure the ref is really set
+                setImmediate(() =>
+                    setImmediate(() => {
+                        // In case it wasn't set (happens in Bot DMs)
+                        if (actionsRef?.current) {
+                            const { onDismissActions } = actionsRef.current
+                            unpatches.push(() => (actionsRef.current.onDismissActions = onDismissActions))
+                            actionsRef.current.onDismissActions = () => {
+                                if (storage.get('dismiss.actions')) return onDismissActions()
+                            }
                         }
-                    }
-                })
+                    }),
+                )
+            }),
+            patcher.after('render', ChatInputSendButton.type, () => {
+                // ref is only accessible after a render
+                // We wait do double setImmediate to make sure the ref is really set
+                setImmediate(() =>
+                    setImmediate(() => {
+                        // In case it wasn't set (happens in Bot DMs)
+                        if (sendBtnRef?.current) {
+                            const { setHasText } = sendBtnRef.current
+                            unpatches.push(() => (sendBtnRef.current.setHasText = setHasText))
+                            sendBtnRef.current.setHasText = (hasText_: boolean) => {
+                                if (storage.get('dismiss.send')) hasText = hasText_
+                                return setHasText(hasText_)
+                            }
+                        }
+                    }),
+                )
+
+                if (!hasText) return <ReactNative.View />
             }),
         )
     },
@@ -124,13 +167,13 @@ export default {
         return (
             <ReactNative.ScrollView style={{ flex: 1 }}>
                 <Stack style={{ paddingVertical: 24, paddingHorizontal: 12 }} spacing={24}>
-                    <TableRowGroup title="Hide Buttons">
+                    <TableRowGroup title="Hide Action Buttons">
                         {(
                             [
-                                ['App Launcher button', 'AppsIcon', 'app'],
-                                ['Gift button', 'ic_gift', 'gift'],
-                                ['New Thread button', 'ThreadPlusIcon', 'thread'],
-                                ['Voice Message button', 'MicrophoneIcon', 'voice'],
+                                ['Apps & Commands', 'GameControllerIcon', 'app'],
+                                ['Gift', 'ic_gift', 'gift'],
+                                ['New Thread', 'ThreadPlusIcon', 'thread'],
+                                ['Voice Message', 'MicrophoneIcon', 'voice'],
                             ] as Array<[name: string, icon: string, key: keyof PluginStorageStruct['hide']]>
                         ).map(([label, icon, key]) => (
                             <TableSwitchRow
@@ -161,15 +204,34 @@ export default {
                         />
                     </TableRowGroup>
                     <TableRadioGroup
-                        title="Collapse Behavior"
-                        defaultValue={storage.get('neverDismiss')}
+                        title="Action Buttons Collapse Behavior"
+                        defaultValue={storage.get('dismiss.actions')}
                         onChange={(v: boolean) => {
-                            storage.set('neverDismiss', v)
+                            storage.set('dismiss.actions', v)
                             forceUpdate()
                         }}
                     >
-                        <TableRadioRow label="Never collapse" value={true} />
-                        <TableRadioRow label="Collapse while typing" value={false} />
+                        <TableRadioRow label="Never collapse" value={false} />
+                        <TableRadioRow
+                            label="Collapse while typing"
+                            subLabel="Collapse action buttons when you start typing."
+                            value={true}
+                        />
+                    </TableRadioGroup>
+                    <TableRadioGroup
+                        title="Send Button Collapse Behavior"
+                        defaultValue={storage.get('dismiss.send')}
+                        onChange={(v: boolean) => {
+                            storage.set('dismiss.send', v)
+                            forceUpdate()
+                        }}
+                    >
+                        <TableRadioRow label="Never collapse" value={false} />
+                        <TableRadioRow
+                            label="Collapse when no text"
+                            subLabel="Collapse the Send button when the message box is empty."
+                            value={true}
+                        />
                     </TableRadioGroup>
                 </Stack>
             </ReactNative.ScrollView>
