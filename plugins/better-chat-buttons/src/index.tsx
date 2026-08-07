@@ -101,6 +101,7 @@ export default {
     onLoad: () => {
         const ChatInputSendButton = findByTypeDisplayNameLazy('ChatInputSendButton')
         const ChatInputActions = findByTypeDisplayNameLazy('ChatInputActions')
+        const ChatInputRightActions = findByTypeDisplayNameLazy('ChatInputRightActions')
 
         let hasText = true
         let sendBtnRef: React.MutableRefObject<{ setHasText(hasText: boolean): void }>
@@ -120,6 +121,9 @@ export default {
                 props.shouldShowGiftButton = !storage.get('hide.gift')
 
                 actionsRef = ref
+            }),
+            patcher.before('render', ChatInputRightActions.type, ([props]) => {
+                props.shouldShowGiftButton = !storage.get('hide.gift')
             }),
             patcher.after('render', ChatInputActions.type, () => {
                 // ref is only accessible after a render
